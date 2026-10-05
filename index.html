@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SmartCorridor AI — Ambulance Traffic Priority System</title>
+<meta name="description" content="Hackathon prototype: AI-powered smart traffic signal ambulance prioritization and emergency green corridor." />
+<style>
+:root{
+  --bg:#f4f7fb;--surface:#fff;--surface2:#f8fafc;--ink:#10233f;--muted:#6b7b90;
+  --navy:#0b1f3a;--navy2:#12345a;--blue:#2563eb;--cyan:#0891b2;
+  --green:#10b981;--green2:#22c55e;--amber:#f59e0b;--red:#e11d48;--red2:#ef4444;
+  --purple:#7c3aed;--border:#dfe7ef;--shadow:0 8px 24px rgba(15,35,64,.06);
+  --radius:16px;
+}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
+button,input,select,textarea{font:inherit}button{cursor:pointer}
+.app{min-height:100vh}
+.sidebar{
+  width:245px;position:fixed;left:0;top:0;bottom:0;background:var(--navy);color:#fff;
+  padding:18px 14px;z-index:40;display:flex;flex-direction:column
+}
+.brand{display:flex;align-items:center;gap:11px;padding:5px 8px 18px;border-bottom:1px solid rgba(255,255,255,.09)}
+.brand-logo{width:42px;height:42px;border-radius:12px;background:var(--red);display:grid;place-items:center;font-size:22px}
+.brand-title{font-size:15px;font-weight:850;letter-spacing:-.02em}.brand-sub{font-size:9px;color:#9db0c9;margin-top:2px}
+.nav{padding-top:17px;display:flex;flex-direction:column;gap:5px}
+.nav button{
+  width:100%;border:0;background:transparent;color:#afbdd0;text-align:left;padding:11px 12px;
+  border-radius:10px;font-size:12px;font-weight:650;display:flex;align-items:center;gap:10px
+}
+.nav button:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav button.active{background:#173657;color:#fff;box-shadow:inset 3px 0 var(--red)}
+.nav-icon{width:19px;text-align:center;font-size:16px}
+.sidebar-bottom{margin-top:auto;padding:12px 8px;color:#8fa1b8;font-size:9px;line-height:1.5}
+.status-mini{display:flex;align-items:center;gap:7px;color:#b9c7d8;font-size:10px}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--green2);box-shadow:0 0 0 4px rgba(34,197,94,.12)}
+
+.main{margin-left:245px;min-height:100vh}
+.topbar{
+  min-height:66px;background:#fff;border-bottom:1px solid var(--border);padding:0 24px;
+  display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:30
+}
+.page-title{font-size:15px;font-weight:800}.breadcrumb{color:var(--muted);font-size:10px;margin-top:3px}
+.top-actions{display:flex;align-items:center;gap:10px}
+.icon-btn{border:1px solid var(--border);background:#fff;border-radius:9px;width:36px;height:36px}
+.user-chip{padding:8px 10px;border-radius:9px;background:var(--surface2);font-size:10px;font-weight:750}
+.content{padding:22px;max-width:1550px;margin:auto}
+.page{display:none}.page.active{display:block}
+.hero{
+  display:flex;justify-content:space-between;align-items:flex-end;gap:18px;margin-bottom:18px
+}
+.hero h1{margin:0;font-size:27px;letter-spacing:-.04em}.hero p{margin:6px 0 0;color:var(--muted);font-size:12px;max-width:850px}
+.btn{border:1px solid transparent;border-radius:10px;padding:10px 13px;font-weight:800;font-size:11px;transition:.15s}
+.btn-primary{background:var(--red);color:#fff;box-shadow:0 8px 18px rgba(225,29,72,.16)}.btn-primary:hover{background:#be123c}
+.btn-blue{background:var(--blue);color:#fff}.btn-blue:hover{background:#1d4ed8}
+.btn-green{background:var(--green);color:#fff}.btn-green:hover{background:#059669}
+.btn-secondary{background:#fff;color:#24405f;border-color:var(--border)}.btn-secondary:hover{background:#f8fafc}
+.btn-danger{background:#fff;color:#b91c1c;border-color:#fecaca}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.card-head{padding:14px 16px;border-bottom:1px solid #edf1f5;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.card-title{font-size:13px;font-weight:850}.card-sub{font-size:10px;color:#8290a2;margin-top:3px}.card-body{padding:16px}
+.stat{padding:16px}.stat-top{display:flex;justify-content:space-between;align-items:center}.stat-icon{width:35px;height:35px;border-radius:10px;background:#edf4ff;color:var(--blue);display:grid;place-items:center;font-size:17px}
+.stat-value{font-size:25px;font-weight:900;margin-top:11px}.stat-label{font-size:10px;color:var(--muted)}
+.pill{display:inline-flex;align-items:center;border-radius:999px;padding:4px 7px;font-size:8px;font-weight:850;letter-spacing:.03em}.pill.green{background:#e8fbf2;color:#059669}.pill.red{background:#fff0f2;color:#dc2626}.pill.blue{background:#ecf3ff;color:#2563eb}.pill.amber{background:#fff7e8;color:#b45309}.pill.purple{background:#f1ebff;color:#6d28d9}.pill.gray{background:#f1f4f7;color:#64748b}
+
+.map{height:430px;position:relative;overflow:hidden;background:#eaf2e8}
+.map-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(79,98,87,.09) 1px,transparent 1px),linear-gradient(90deg,rgba(79,98,87,.09) 1px,transparent 1px);background-size:34px 34px}
+.road{position:absolute;background:rgba(255,255,255,.88);border:1px solid rgba(177,190,180,.55);box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.r1{width:120%;height:44px;left:-10%;top:47%;transform:rotate(-22deg)}.r2{width:110%;height:38px;left:-5%;top:68%;transform:rotate(15deg)}.r3{width:42px;height:125%;left:62%;top:-12%;transform:rotate(18deg)}
+.route-svg{position:absolute;inset:0;width:100%;height:100%;z-index:2}
+.map-signal{position:absolute;z-index:5;transform:translate(-50%,-50%);width:30px;height:30px;border:3px solid white;border-radius:50%;background:var(--red2);box-shadow:0 2px 10px rgba(0,0,0,.24);padding:0}
+.map-signal.green{background:var(--green2)}.map-signal.priority{box-shadow:0 0 0 7px rgba(16,185,129,.17),0 2px 9px rgba(0,0,0,.25)}
+.map-signal span{width:7px;height:7px;background:white;border-radius:50%;display:block;margin:auto}
+.amb-marker{position:absolute;z-index:6;transform:translate(-50%,-50%);width:45px;height:45px;border-radius:50%;background:var(--red);border:4px solid #fff;display:grid;place-items:center;font-size:22px;box-shadow:0 4px 16px rgba(225,29,72,.4),0 0 0 8px rgba(225,29,72,.11);transition:.8s linear}
+.map-label{position:absolute;z-index:7;padding:4px 6px;background:#fff;border-radius:5px;box-shadow:0 2px 8px rgba(0,0,0,.1);font-size:8px;font-weight:850;letter-spacing:.08em}
+.start{left:5%;top:89%}.hospital{right:4%;top:14%}
+.map-legend{position:absolute;left:13px;bottom:13px;z-index:8;background:rgba(255,255,255,.95);border:1px solid #dfe6ed;border-radius:9px;padding:8px;display:flex;gap:10px;flex-wrap:wrap;font-size:9px;color:#5c6d81}
+.map-legend span{display:flex;align-items:center;gap:4px}.map-legend i{width:7px;height:7px;border-radius:50%}.lr{background:var(--green)}.lg{background:var(--green2)}.lred{background:var(--red2)}.lp{background:var(--green);box-shadow:0 0 0 3px rgba(16,185,129,.18)}
+
+.select,.input,.textarea{
+  width:100%;padding:10px;border:1px solid var(--border);border-radius:9px;background:#fff;color:#17304e;font-size:11px;outline:none
+}
+.input:focus,.select:focus,.textarea:focus{border-color:#8eb4e8;box-shadow:0 0 0 3px rgba(37,99,235,.08)}
+.label{display:block;font-size:9px;color:#718096;font-weight:750;margin:0 0 5px}.field{margin-bottom:12px}
+.textarea{min-height:85px;resize:vertical}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.detail{padding:10px;background:#f7f9fc;border-radius:9px}.detail label{display:block;color:#8290a1;font-size:9px;margin-bottom:3px}.detail b{font-size:11px}
+.progress{height:7px;background:#edf1f5;border-radius:999px;overflow:hidden}.progress>div{height:100%;background:var(--green);border-radius:999px;transition:.4s}
+.emergency-box{margin-top:12px;border:1px solid #fecdd3;background:#fff6f7;border-radius:11px;padding:11px;display:flex;gap:9px;font-size:10px;line-height:1.45}
+.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse;min-width:720px}.table th,.table td{padding:10px 8px;border-bottom:1px solid #edf1f5;text-align:left;font-size:10px}.table th{color:#718096;font-size:9px;text-transform:uppercase;letter-spacing:.04em}
+.signal-card{border:1px solid var(--border);border-radius:12px;padding:11px;cursor:pointer;background:#fff;transition:.15s}.signal-card:hover,.signal-card.selected{border-color:#91b7e7;box-shadow:0 5px 15px rgba(37,99,235,.08)}.signal-head{display:flex;justify-content:space-between;gap:7px}.signal-id{font-size:9px;font-weight:850;color:#60718a}.signal-name{font-size:11px;font-weight:800;margin-top:7px;min-height:27px}.signal-foot{display:flex;justify-content:space-between;align-items:center;margin-top:10px}.signal-state{font-size:9px;font-weight:850;display:flex;align-items:center;gap:5px}.dot{width:7px;height:7px;border-radius:50%;display:inline-block}.dot.red{background:var(--red2)}.dot.green{background:var(--green2)}.dot.amber{background:var(--amber)}
+.light-preview{display:flex;gap:6px;padding:10px 0}.bulb{width:28px;height:28px;border-radius:50%;opacity:.18}.bulb.red{background:var(--red2)}.bulb.yellow{background:var(--amber)}.bulb.green{background:var(--green2)}.bulb.on{opacity:1;box-shadow:0 0 13px currentColor}
+.activity-item{display:flex;gap:9px;padding:9px 0;border-bottom:1px solid #edf1f5}.activity-item:last-child{border-bottom:0}.activity-dot{width:7px;height:7px;border-radius:50%;margin-top:5px}.activity-text{font-size:10px;line-height:1.4;color:#42546b}.activity-time{font-size:9px;color:#96a2b0;margin-top:2px}
+.kpi-row{display:flex;gap:8px;flex-wrap:wrap}.kpi{padding:10px 11px;border:1px solid var(--border);border-radius:9px;background:#fbfdff}.kpi b{font-size:14px}.kpi small{display:block;color:var(--muted);font-size:8px;margin-top:2px}
+.bar-chart{height:190px;display:flex;align-items:flex-end;gap:10px;padding:10px 5px 4px;border-bottom:1px solid #dfe7ef}
+.bar{flex:1;min-width:10px;background:linear-gradient(to top,#2563eb,#60a5fa);border-radius:5px 5px 0 0;position:relative}.bar span{position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:8px;color:#60718a}.bar-labels{display:flex;gap:10px;padding:4px 5px}.bar-labels span{flex:1;text-align:center;font-size:8px;color:#8390a0}
+.ai-panel{background:linear-gradient(145deg,#0f2440,#143b66);color:white;border-radius:15px;padding:17px;box-shadow:var(--shadow)}
+.ai-badge{display:inline-flex;padding:5px 8px;border-radius:999px;background:rgba(255,255,255,.10);font-size:8px;font-weight:850}.ai-panel h2{margin:10px 0 4px;font-size:19px}.ai-panel p{margin:0;color:#b9c9dc;font-size:10px;line-height:1.5}
+.ai-score{font-size:34px;font-weight:900;margin-top:15px}.score-label{color:#a9bed5;font-size:9px}
+.ai-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}.ai-chip{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:9px}.ai-chip b{font-size:11px}.ai-chip span{display:block;color:#b4c5d9;font-size:8px;margin-top:3px}
+.confidence{height:7px;background:rgba(255,255,255,.12);border-radius:99px;overflow:hidden;margin-top:8px}.confidence div{height:100%;width:92%;background:#60a5fa;border-radius:99px}
+.timeline{position:relative;padding-left:18px}.timeline:before{content:"";position:absolute;left:5px;top:4px;bottom:4px;width:2px;background:#dbe4ee}.tl-item{position:relative;padding:0 0 15px}.tl-item:before{content:"";position:absolute;left:-16px;top:3px;width:9px;height:9px;border-radius:50%;background:var(--blue);border:2px solid #fff;box-shadow:0 0 0 2px #bfd1e8}.tl-item h4{margin:0;font-size:10px}.tl-item p{margin:3px 0 0;font-size:9px;color:var(--muted);line-height:1.45}
+.code{background:#07162a;color:#d7e7fb;border-radius:10px;padding:12px;font:10px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;overflow:auto}
+.arch{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;align-items:center}.arch-box{background:#f7f9fc;border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;font-size:9px}.arch-box b{display:block;font-size:11px;margin-bottom:4px}.arch-arrow{text-align:center;color:var(--blue);font-size:17px}
+.feature-list{display:grid;grid-template-columns:1fr 1fr;gap:9px}.feature{padding:10px;border:1px solid var(--border);border-radius:10px;background:#fbfdff}.feature b{font-size:10px}.feature p{margin:3px 0 0;color:var(--muted);font-size:8px;line-height:1.4}
+.modal-backdrop{position:fixed;inset:0;background:rgba(8,22,41,.55);display:none;align-items:center;justify-content:center;z-index:100;padding:18px}.modal-backdrop.show{display:flex}.modal{width:min(680px,100%);background:#fff;border-radius:15px;box-shadow:0 20px 50px rgba(0,0,0,.22);overflow:hidden}.modal-head{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border)}.modal-body{padding:16px}
+.toast{position:fixed;right:18px;bottom:18px;z-index:120;background:var(--navy);color:#fff;padding:12px 14px;border-radius:10px;box-shadow:0 12px 30px rgba(11,31,58,.25);font-size:11px;max-width:380px;opacity:0;transform:translateY(10px);pointer-events:none;transition:.2s}.toast.show{opacity:1;transform:translateY(0)}.toast small{display:block;color:#b9c7d8;font-size:9px;margin-top:2px}
+.mobile-menu{display:none}
+@media(max-width:1100px){
+  .sidebar{width:205px}.main{margin-left:205px}.grid-4{grid-template-columns:1fr 1fr}.grid-3{grid-template-columns:1fr 1fr}.signal-list-grid{grid-template-columns:repeat(3,1fr)!important}.arch{grid-template-columns:1fr}
+}
+@media(max-width:760px){
+  .sidebar{transform:translateX(-100%);transition:.2s}.sidebar.open{transform:translateX(0)}.main{margin-left:0}
+  .topbar{padding:0 14px}.mobile-menu{display:block}.page-title{font-size:13px}.content{padding:15px}
+  .grid-4,.grid-3,.grid-2{grid-template-columns:1fr}.hero{flex-direction:column;align-items:flex-start}
+  .signal-list-grid{grid-template-columns:1fr 1fr!important}.form-grid{grid-template-columns:1fr}.map{height:360px}
+  .top-actions .user-chip{display:none}
+}
+@media(max-width:450px){.signal-list-grid{grid-template-columns:1fr!important}.map-legend{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar">
+    <div class="brand">
+      <div class="brand-logo">🚑</div>
+      <div><div class="brand-title">SmartCorridor AI</div><div class="brand-sub">Emergency Traffic Intelligence</div></div>
+    </div>
+    <nav class="nav">
+      <button data-page="dashboard" class="active"><span class="nav-icon">📊</span>Dashboard</button>
+      <button data-page="ambulances"><span class="nav-icon">🚑</span>Ambulances</button>
+      <button data-page="routes"><span class="nav-icon">🛣️</span>Route Planner</button>
+      <button data-page="signals"><span class="nav-icon">🚦</span>Traffic Signals</button>
+      <button data-page="ai"><span class="nav-icon">🧠</span>AI Intelligence</button>
+      <button data-page="events"><span class="nav-icon">🔔</span>Emergency Events</button>
+      <button data-page="analytics"><span class="nav-icon">📈</span>Analytics</button>
+      <button data-page="architecture"><span class="nav-icon">⚙️</span>System & API</button>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="status-mini"><span class="status-dot"></span> All demo services healthy</div>
+      <div style="margin-top:7px">Java 17+ • Spring Boot • React • JPA/Hibernate • MySQL/PostgreSQL</div>
+    </div>
+  </aside>
+
+  <section class="main">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:10px">
+        <button id="mobileMenu" class="icon-btn mobile-menu">☰</button>
+        <div><div id="pageTitle" class="page-title">Emergency Route Dashboard</div><div id="breadcrumb" class="breadcrumb">SmartCorridor AI / Dashboard</div></div>
+      </div>
+      <div class="top-actions">
+        <div class="live" style="display:flex;align-items:center;gap:7px;font-size:10px;color:#63748a"><span class="live-dot" style="width:7px;height:7px;border-radius:50%;background:#22c55e"></span> SYSTEM ONLINE</div>
+        <button id="notificationBtn" class="icon-btn">🔔</button>
+        <div id="topClock" style="font-size:10px;color:#68788d;font-variant-numeric:tabular-nums"></div>
+        <div class="user-chip">Operator • Demo</div>
+      </div>
+    </header>
+
+    <main class="content">
+      <!-- DASHBOARD -->
+      <section id="page-dashboard" class="page active">
+        <div class="hero">
+          <div><h1>Emergency Route Dashboard</h1><p>Monitor an ambulance, predict junction arrival, and coordinate a sequential green corridor across the route.</p></div>
+          <button class="btn btn-primary" onclick="activateGreenCorridor()">🚑 Activate Emergency Green Corridor</button>
+        </div>
+
+        <div class="grid-4" style="margin-bottom:16px">
+          <div class="card stat"><div class="stat-top"><div class="stat-icon">🚑</div><span class="pill green">LIVE</span></div><div id="dAmb" class="stat-value">1</div><div class="stat-label">Ambulances en route</div></div>
+          <div class="card stat"><div class="stat-top"><div class="stat-icon">🚦</div><span class="pill green">ACTIVE</span></div><div id="dPri" class="stat-value">0</div><div class="stat-label">Signals on priority</div></div>
+          <div class="card stat"><div class="stat-top"><div class="stat-icon">🛣️</div><span class="pill blue">ROUTE</span></div><div id="dSig" class="stat-value">5</div><div class="stat-label">Signals on selected route</div></div>
+          <div class="card stat"><div class="stat-top"><div class="stat-icon">⚠️</div><span class="pill red">ALERT</span></div><div id="dRed" class="stat-value">4</div><div class="stat-label">Signals currently red</div></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head"><div><div class="card-title">Live Ambulance Route</div><div class="card-sub">Interactive demo map with signal states and priority route</div></div><span class="pill green">AUTO UPDATE</span></div>
+            <div id="dashboardMap" class="map"></div>
+            <div class="card-body">
+              <div class="form-grid">
+                <div class="field"><label class="label">SELECT AMBULANCE</label><select id="dashAmbSelect" class="select"></select></div>
+                <div class="field"><label class="label">EMERGENCY LEVEL</label><select id="dashSeverity" class="select"><option>CRITICAL</option><option>HIGH</option><option>MEDIUM</option></select></div>
+              </div>
+              <div class="detail-grid">
+                <div class="detail"><label>ORIGIN</label><b id="dashOrigin">Tirupati Central</b></div>
+                <div class="detail"><label>DESTINATION</label><b id="dashDestination">SVIMS Hospital</b></div>
+                <div class="detail"><label>SPEED</label><b id="dashSpeed">54 km/h</b></div>
+                <div class="detail"><label>ETA</label><b id="dashEta">11 min</b></div>
+              </div>
+              <div style="margin-top:12px"><div style="display:flex;justify-content:space-between;font-size:9px;color:#718096;margin-bottom:5px"><span>Route progress</span><b id="dashProgressText">4%</b></div><div class="progress"><div id="dashProgress" style="width:4%"></div></div></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="ai-panel">
+              <span class="ai-badge">🧠 AI DECISION ENGINE • DEMO</span>
+              <h2 id="aiRecommendation">SIG-101 should receive priority</h2>
+              <p>AI estimates the next signal where intervention creates the greatest reduction in ambulance delay.</p>
+              <div class="ai-score" id="aiScore">92</div><div class="score-label">PRIORITY CONFIDENCE SCORE / 100</div>
+              <div class="confidence"><div></div></div>
+              <div class="ai-grid">
+                <div class="ai-chip"><b id="aiEta">2 min</b><span>Predicted junction ETA</span></div>
+                <div class="ai-chip"><b id="aiDelay">-38%</b><span>Estimated delay reduction</span></div>
+                <div class="ai-chip"><b id="aiCongestion">Medium</b><span>Traffic congestion forecast</span></div>
+                <div class="ai-chip"><b id="aiSafety">Safe</b><span>Conflict/safety check</span></div>
+              </div>
+              <div style="display:flex;gap:7px;margin-top:13px">
+                <button class="btn btn-green" onclick="aiApprove()">✓ Approve AI Recommendation</button>
+                <button class="btn btn-secondary" onclick="go('ai')">View AI</button>
+              </div>
+            </div>
+
+            <div class="card" style="margin-top:16px">
+              <div class="card-head"><div><div class="card-title">Next Signal Actions</div><div class="card-sub">Human-in-the-loop emergency control</div></div></div>
+              <div class="card-body" id="nextActions"></div>
+            </div>
+
+            <div class="card" style="margin-top:16px">
+              <div class="card-head"><div><div class="card-title">Recent Activity</div><div class="card-sub">System events</div></div><button class="btn btn-secondary" style="padding:6px 8px;font-size:9px" onclick="clearActivity()">Clear</button></div>
+              <div class="card-body" id="dashActivity" style="padding-top:8px"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div class="card-head"><div><div class="card-title">Route Traffic Signals</div><div class="card-sub">Click a junction to inspect it</div></div><div class="toolbar" id="dashFilters"></div></div>
+          <div class="card-body"><div id="dashSignalList" class="grid-3 signal-list-grid"></div></div>
+        </div>
+      </section>
+
+      <!-- AMBULANCES -->
+      <section id="page-ambulances" class="page">
+        <div class="hero"><div><h1>Ambulance Operations</h1><p>Register emergency vehicles, capture current location/destination, track ETA and manage emergency severity.</p></div><button class="btn btn-primary" onclick="openAmbulanceModal()">+ Register Ambulance</button></div>
+        <div class="grid-4" style="margin-bottom:16px">
+          <div class="card stat"><div class="stat-top"><div class="stat-icon">🚑</div><span class="pill blue">FLEET</span></div><div id="aTotal" class="stat-value">2</div><div class="stat-label">Registered ambulances</div></div>
+          <div class="card stat"><div class="stat-top"><div class="stat-icon">🚨</div><span class="pill red">CRITICAL</span></div><div id="aCritical" class="stat-value">1</div><div class="stat-label">Critical emergencies</div></div>
+          <div class="card stat"><div class="stat-top"><div class="stat-icon">⏱️</div><span class="pill green">ETA</span></div><div id="aEta" class="stat-value">11m</div><div class="stat-label">Nearest hospital ETA</div></div>
+          <div class="card stat"><div class="stat-top"><div class="stat-icon">📡</div><span class="pill green">GPS</span></div><div class="stat-value">100%</div><div class="stat-label">Demo GPS connectivity</div></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div><div class="card-title">Active Ambulance Fleet</div><div class="card-sub">Core entity for POST /api/ambulances</div></div><button class="btn btn-secondary" onclick="refreshData()">↻ Refresh</button></div>
+          <div class="card-body table-wrap"><table class="table"><thead><tr><th>ID</th><th>Status</th><th>Emergency</th><th>Origin</th><th>Destination</th><th>Speed</th><th>ETA</th><th>Action</th></tr></thead><tbody id="ambulanceTable"></tbody></table></div>
+        </div>
+        <div class="grid-2" style="margin-top:16px">
+          <div class="card"><div class="card-head"><div><div class="card-title">Operator Input</div><div class="card-sub">Minimum required fields</div></div></div><div class="card-body">
+            <div class="field"><label class="label">Ambulance ID</label><input class="input" id="quickAmbId" value="AMB-003"></div>
+            <div class="form-grid"><div class="field"><label class="label">Current Location</label><input class="input" id="quickOrigin" value="Alipiri Road"></div><div class="field"><label class="label">Destination</label><input class="input" id="quickDestination" value="SVIMS Hospital"></div></div>
+            <div class="form-grid"><div class="field"><label class="label">Severity</label><select class="select" id="quickSeverity"><option>CRITICAL</option><option>HIGH</option><option>MEDIUM</option></select></div><div class="field"><label class="label">Speed (km/h)</label><input class="input" id="quickSpeed" type="number" value="50"></div></div>
+            <button class="btn btn-primary" onclick="quickAddAmbulance()">Create Ambulance & Calculate Route</button>
+          </div></div>
+          <div class="card"><div class="card-head"><div><div class="card-title">Operational Rules</div><div class="card-sub">Safety-first design</div></div></div><div class="card-body">
+            <div class="feature-list">
+              <div class="feature"><b>Required validation</b><p>Ambulance ID, current location, destination and emergency level must be present.</p></div>
+              <div class="feature"><b>Human approval</b><p>AI can recommend priority; operator can approve or override the recommendation.</p></div>
+              <div class="feature"><b>Sequential priority</b><p>Only the next relevant signal receives green priority.</p></div>
+              <div class="feature"><b>Audit trail</b><p>Every priority change is recorded as a PriorityEvent.</p></div>
+            </div>
+          </div></div>
+        </div>
+      </section>
+
+      <!-- ROUTES -->
+      <section id="page-routes" class="page">
+        <div class="hero"><div><h1>AI Route Planner</h1><p>Build a route, identify signals along it and generate the recommended green-corridor sequence.</p></div><button class="btn btn-blue" onclick="calculateRoute()">🧠 Calculate Best Emergency Route</button></div>
+        <div class="grid-2">
+          <div class="card"><div class="card-head"><div><div class="card-title">Route Request</div><div class="card-sub">React form → Spring Boot Controller → RouteService</div></div></div><div class="card-body">
+            <div class="field"><label class="label">AMBULANCE</label><select class="select" id="routeAmbSelect"></select></div>
+            <div class="form-grid"><div class="field"><label class="label">CURRENT LOCATION</label><input class="input" id="routeOrigin" value="Tirupati Central"></div><div class="field"><label class="label">DESTINATION</label><input class="input" id="routeDestination" value="SVIMS Hospital"></div></div>
+            <div class="form-grid"><div class="field"><label class="label">TRAFFIC MODEL</label><select class="select"><option>AI PREDICTIVE</option><option>FASTEST</option><option>SAFEST</option></select></div><div class="field"><label class="label">AVOID CONGESTION</label><select class="select"><option>YES</option><option>NO</option></select></div></div>
+            <button class="btn btn-blue" onclick="calculateRoute()">Generate Route</button>
+          </div></div>
+          <div class="card"><div class="card-head"><div><div class="card-title">Route Intelligence</div><div class="card-sub">AI-generated estimate</div></div><span class="pill purple">AI</span></div><div class="card-body">
+            <div class="kpi-row"><div class="kpi"><b id="routeDistance">7.8 km</b><small>Distance</small></div><div class="kpi"><b id="routeEta">11 min</b><small>Estimated time</small></div><div class="kpi"><b id="routeSignals">5</b><small>Signal count</small></div><div class="kpi"><b id="routeSaved">4 min</b><small>Time saved</small></div></div>
+            <div class="emergency-box"><b>AI explanation</b><span id="routeExplanation">The chosen route minimizes predicted congestion and keeps the ambulance aligned with five signalized junctions that can be prioritized sequentially.</span></div>
+          </div></div>
+        </div>
+        <div class="card" style="margin-top:16px"><div class="card-head"><div><div class="card-title">Green Corridor Sequence</div><div class="card-sub">Priority order generated from ambulance ETA</div></div></div><div class="card-body"><div id="routeTimeline" class="timeline"></div></div></div>
+      </section>
+
+      <!-- SIGNALS -->
+      <section id="page-signals" class="page">
+        <div class="hero"><div><h1>Traffic Signal Command Center</h1><p>Monitor junction state, phase timing and priority mode. Use this page as the frontend for /api/signals and priority APIs.</p></div><button class="btn btn-primary" onclick="activateGreenCorridor()">Activate Full Demo Corridor</button></div>
+        <div class="grid-4" style="margin-bottom:16px">
+          <div class="card stat"><div class="stat-top"><div class="stat-icon">🚦</div><span class="pill blue">TOTAL</span></div><div class="stat-value" id="sTotal">5</div><div class="stat-label">Route signals</div></div>
+          <div class="card stat"><div class="stat-top"><div class="stat-icon">🟢</div><span class="pill green">GREEN</span></div><div class="stat-value" id="sGreen">1</div><div class="stat-label">Currently green</div></div>
+          <div class="card stat"><div class="stat-top"><div class="stat-icon">🔴</div><span class="pill red">RED</span></div><div class="stat-value" id="sRed">4</div><div class="stat-label">Currently red</div></div>
+          <div class="card stat"><div class="stat-top"><div class="stat-icon">⚡</div><span class="pill green">PRIORITY</span></div><div class="stat-value" id="sPriority">0</div><div class="stat-label">Priority active</div></div>
+        </div>
+        <div class="card"><div class="card-head"><div><div class="card-title">Signal Network</div><div class="card-sub">Select a signal for detailed control</div></div><div class="toolbar"><button class="filter active" data-sfilter="ALL">ALL</button><button class="filter" data-sfilter="RED">RED</button><button class="filter" data-sfilter="GREEN">GREEN</button><button class="filter" data-sfilter="PRIORITY">PRIORITY</button></div></div>
+          <div class="card-body"><div id="signalNetwork" class="grid-3 signal-list-grid"></div></div>
+        </div>
+        <div class="grid-2" style="margin-top:16px">
+          <div class="card"><div class="card-head"><div><div class="card-title">Signal Controller</div><div class="card-sub">Manual operator override / AI approval</div></div></div><div class="card-body" id="signalController"></div></div>
+          <div class="card"><div class="card-head"><div><div class="card-title">Controller API Response</div><div class="card-sub">What React receives from Spring Boot</div></div></div><div class="card-body"><pre class="code" id="signalJson"></pre></div></div>
+        </div>
+      </section>
+
+      <!-- AI -->
+      <section id="page-ai" class="page">
+        <div class="hero"><div><h1>AI Traffic Intelligence Center</h1><p>AI layer for predictive congestion, ambulance ETA, priority scoring, anomaly detection and explainable recommendations.</p></div><button class="btn btn-blue" onclick="runAiAnalysis()">🧠 Run AI Analysis</button></div>
+        <div class="grid-3">
+          <div class="card stat"><div class="stat-top"><div class="stat-icon">🎯</div><span class="pill purple">AI</span></div><div class="stat-value" id="aiPageScore">92%</div><div class="stat-label">Priority recommendation confidence</div></div>
+          <div class="card stat"><div class="stat-top"><div class="stat-icon">🚦</div><span class="pill amber">PREDICT</span></div><div class="stat-value" id="aiPageCongestion">Medium</div><div class="stat-label">Traffic congestion forecast</div></div>
+          <div class="card stat"><div class="stat-top"><div class="stat-icon">⏱️</div><span class="pill green">ETA</span></div><div class="stat-value" id="aiPageEta">11 min</div><div class="stat-label">Predicted ambulance arrival</div></div>
+        </div>
+        <div class="grid-2" style="margin-top:16px">
+          <div class="ai-panel">
+            <span class="ai-badge">MODEL: SMARTCORRIDOR-PRIORITY-V1</span>
+            <h2 id="aiMainRecommendation">Prioritize SIG-101</h2>
+            <p id="aiMainExplanation">The model combines emergency severity, distance, predicted ETA, current signal state and congestion to select the next signal.</p>
+            <div class="ai-grid">
+              <div class="ai-chip"><b>40%</b><span>Emergency severity weight</span></div>
+              <div class="ai-chip"><b>30%</b><span>ETA weight</span></div>
+              <div class="ai-chip"><b>20%</b><span>Distance weight</span></div>
+              <div class="ai-chip"><b>10%</b><span>Signal state weight</span></div>
+            </div>
+            <div style="margin-top:14px;font-size:9px;color:#a9bed5">Confidence</div><div class="confidence"><div id="aiConfidenceBar" style="width:92%"></div></div>
+            <div style="display:flex;gap:7px;margin-top:13px"><button class="btn btn-green" onclick="aiApprove()">✓ Approve</button><button class="btn btn-secondary" onclick="addActivity('Operator opened AI explanation and retained human approval control.','info')">Explain Decision</button></div>
+          </div>
+          <div class="card"><div class="card-head"><div><div class="card-title">AI Decision Factors</div><div class="card-sub">Explainable scoring for judges</div></div></div><div class="card-body">
+            <div id="aiFactors"></div>
+          </div></div>
+        </div>
+        <div class="grid-2" style="margin-top:16px">
+          <div class="card"><div class="card-head"><div><div class="card-title">Prediction Capabilities</div><div class="card-sub">Best future-ready features</div></div></div><div class="card-body"><div class="feature-list">
+            <div class="feature"><b>Congestion prediction</b><p>Forecast traffic density 5–15 minutes ahead using historical and live signal data.</p></div>
+            <div class="feature"><b>ETA prediction</b><p>Use route distance, speed and congestion to estimate ambulance arrival at each junction.</p></div>
+            <div class="feature"><b>Conflict detection</b><p>Check whether a priority request could create unsafe conflicting movements.</p></div>
+            <div class="feature"><b>Dynamic rerouting</b><p>Recommend an alternate route when congestion or a blocked road raises predicted ETA.</p></div>
+          </div></div></div>
+          <div class="card"><div class="card-head"><div><div class="card-title">AI Integration Path</div><div class="card-sub">Prototype now, ML later</div></div></div><div class="card-body">
+            <div class="code">React UI
+  ↓ REST/JSON
+Spring Boot /ai/analyze
+  ↓
+Feature engineering
+  ↓
+Python/FastAPI or Java ML model
+  ↓
+Priority score + ETA + explanation
+  ↓
+Spring Boot SignalPriorityService
+  ↓
+React dashboard update</div>
+          </div></div>
+        </div>
+      </section>
+
+      <!-- EVENTS -->
+      <section id="page-events" class="page">
+        <div class="hero"><div><h1>Emergency Events & Audit</h1><p>Maintain a clear, auditable history of route decisions, signal changes, operator actions and AI recommendations.</p></div><button class="btn btn-secondary" onclick="clearActivity()">Clear Demo Log</button></div>
+        <div class="grid-4" style="margin-bottom:16px">
+          <div class="card stat"><div class="stat-top"><div class="stat-icon">🔔</div><span class="pill blue">EVENTS</span></div><div class="stat-value" id="eCount">0</div><div class="stat-label">Total demo events</div></div>
+          <div class="card stat"><div class="stat-top"><div class="stat-icon">⚡</div><span class="pill green">PRIORITY</span></div><div class="stat-value" id="ePriority">0</div><div class="stat-label">Priority activations</div></div>
+          <div class="card stat"><div class="stat-top"><div class="stat-icon">🧠</div><span class="pill purple">AI</span></div><div class="stat-value" id="eAi">0</div><div class="stat-label">AI recommendations</div></div>
+          <div class="card stat"><div class="stat-top"><div class="stat-icon">✅</div><span class="pill green">SUCCESS</span></div><div class="stat-value" id="eSuccess">0</div><div class="stat-label">Successful actions</div></div>
+        </div>
+        <div class="card"><div class="card-head"><div><div class="card-title">Event Log</div><div class="card-sub">PriorityEvent table representation</div></div></div>
+          <div class="card-body table-wrap"><table class="table"><thead><tr><th>Time</th><th>Type</th><th>Ambulance</th><th>Signal</th><th>Action</th><th>Status</th><th>Reason</th></tr></thead><tbody id="eventTable"></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- ANALYTICS -->
+      <section id="page-analytics" class="page">
+        <div class="hero"><div><h1>Performance Analytics</h1><p>Measure response improvements, signal performance, estimated time saved and corridor efficiency.</p></div><button class="btn btn-secondary" onclick="toast('Analytics exported','Prototype export action is ready to connect to a backend report API.')">⬇ Export Report</button></div>
+        <div class="grid-4" style="margin-bottom:16px">
+          <div class="card stat"><div class="stat-top"><div class="stat-icon">⏱️</div><span class="pill green">SAVED</span></div><div class="stat-value">4.2m</div><div class="stat-label">Average estimated time saved</div></div>
+          <div class="card stat"><div class="stat-top"><div class="stat-icon">🚦</div><span class="pill blue">PASS</span></div><div class="stat-value">96%</div><div class="stat-label">Priority passage success</div></div>
+          <div class="card stat"><div class="stat-top"><div class="stat-icon">🧠</div><span class="pill purple">AI</span></div><div class="stat-value">92%</div><div class="stat-label">Recommendation confidence</div></div>
+          <div class="card stat"><div class="stat-top"><div class="stat-icon">🛡️</div><span class="pill green">SAFE</span></div><div class="stat-value">99.2%</div><div class="stat-label">Safety-check pass rate</div></div>
+        </div>
+        <div class="grid-2">
+          <div class="card"><div class="card-head"><div><div class="card-title">Response Time Trend</div><div class="card-sub">Illustrative demo values</div></div></div><div class="card-body">
+            <div id="barChart" class="bar-chart"></div><div id="barLabels" class="bar-labels"></div>
+          </div></div>
+          <div class="card"><div class="card-head"><div><div class="card-title">Key Metrics</div><div class="card-sub">What your judges should see</div></div></div><div class="card-body">
+            <div class="kpi-row"><div class="kpi"><b>5</b><small>Signals / route</small></div><div class="kpi"><b>11m</b><small>Baseline ETA</small></div><div class="kpi"><b>7m</b><small>AI optimized ETA</small></div><div class="kpi"><b>38%</b><small>Delay reduction</small></div></div>
+            <div class="emergency-box"><b>Impact</b><span>Dynamic prioritization can turn a static route into an operational emergency corridor, while retaining human approval and an audit trail.</span></div>
+          </div></div>
+        </div>
+      </section>
+
+      <!-- ARCHITECTURE -->
+      <section id="page-architecture" class="page">
+        <div class="hero"><div><h1>System Architecture & API</h1><p>Complete implementation blueprint aligned to the mandatory hackathon technology requirements.</p></div><button class="btn btn-blue" onclick="toast('Backend contract copied','Use the API table and sample payloads while implementing Spring Boot.')">API Contract</button></div>
+        <div class="card"><div class="card-head"><div><div class="card-title">End-to-End Architecture</div><div class="card-sub">React → REST → Spring Boot → JPA/Hibernate → Database → JSON → React</div></div></div><div class="card-body">
+          <div class="arch">
+            <div class="arch-box"><b>React Frontend</b>Dashboard, forms, loading, validation, errors</div><div class="arch-arrow">→</div>
+            <div class="arch-box"><b>Spring Boot Controller</b>REST endpoints + HTTP status</div><div class="arch-arrow">→</div>
+            <div class="arch-box"><b>Service / Business Logic</b>Route, ETA, AI, priority</div>
+          </div>
+          <div style="height:12px"></div>
+          <div class="arch">
+            <div class="arch-box"><b>JPA Repository</b>CRUD + persistence</div><div class="arch-arrow">→</div>
+            <div class="arch-box"><b>MySQL / PostgreSQL</b>Core operational data</div><div class="arch-arrow">→</div>
+            <div class="arch-box"><b>JSON Response</b>React updates state and UI</div><div class="arch-arrow">→</div>
+            <div class="arch-box"><b>Future IoT/GPS</b>Signal controller integration</div><div class="arch-arrow">→</div>
+          </div>
+        </div></div>
+
+        <div class="grid-2" style="margin-top:16px">
+          <div class="card"><div class="card-head"><div><div class="card-title">REST API Contract</div><div class="card-sub">Suggested Spring Boot endpoints</div></div></div><div class="card-body table-wrap">
+            <table class="table"><thead><tr><th>Method</th><th>Endpoint</th><th>Purpose</th><th>Response</th></tr></thead><tbody>
+              <tr><td>POST</td><td><code>/api/ambulances</code></td><td>Create ambulance</td><td>201 Created</td></tr>
+              <tr><td>GET</td><td><code>/api/ambulances</code></td><td>List ambulances</td><td>200 OK</td></tr>
+              <tr><td>GET</td><td><code>/api/routes/{id}</code></td><td>Route + signals + ETA</td><td>200 OK</td></tr>
+              <tr><td>GET</td><td><code>/api/signals</code></td><td>Signal network</td><td>200 OK</td></tr>
+              <tr><td>POST</td><td><code>/api/signals/{id}/priority</code></td><td>Activate priority</td><td>200 OK</td></tr>
+              <tr><td>POST</td><td><code>/api/signals/{id}/clear-priority</code></td><td>Return to normal</td><td>200 OK</td></tr>
+              <tr><td>POST</td><td><code>/api/ai/analyze</code></td><td>AI priority recommendation</td><td>200 OK</td></tr>
+            </tbody></table>
+          </div></div>
+
+          <div class="card"><div class="card-head"><div><div class="card-title">Java / Spring Boot Modules</div><div class="card-sub">Recommended package structure</div></div></div><div class="card-body"><div class="code">com.hackathon.smartcorridor
+├── controller
+│   ├── AmbulanceController
+│   ├── RouteController
+│   ├── SignalController
+│   └── AiController
+├── service
+│   ├── AmbulanceService
+│   ├── RouteService
+│   ├── SignalPriorityService
+│   └── AiDecisionService
+├── repository
+│   ├── AmbulanceRepository
+│   ├── TrafficSignalRepository
+│   ├── RouteRepository
+│   └── PriorityEventRepository
+├── entity
+│   ├── Ambulance
+│   ├── TrafficSignal
+│   ├── Route
+│   └── PriorityEvent
+└── dto
+    ├── AmbulanceRequest
+    ├── RouteResponse
+    └── PriorityRequest</div></div></div>
+        </div>
+
+        <div class="grid-2" style="margin-top:16px">
+          <div class="card"><div class="card-head"><div><div class="card-title">Database Tables</div><div class="card-sub">MySQL / PostgreSQL</div></div></div><div class="card-body">
+            <div class="feature-list">
+              <div class="feature"><b>ambulance</b><p>id, ambulance_number, latitude, longitude, destination, status, priority, speed, eta, timestamps.</p></div>
+              <div class="feature"><b>traffic_signal</b><p>id, signal_code, name, latitude, longitude, current_state, normal_phase, priority_enabled.</p></div>
+              <div class="feature"><b>route</b><p>id, ambulance_id, origin, destination, distance, eta, created_at.</p></div>
+              <div class="feature"><b>priority_event</b><p>id, ambulance_id, signal_id, action, previous_state, new_state, reason, created_at.</p></div>
+            </div>
+          </div></div>
+          <div class="card"><div class="card-head"><div><div class="card-title">HTTP Validation & Error Strategy</div><div class="card-sub">Required meaningful responses</div></div></div><div class="card-body">
+            <div class="feature-list">
+              <div class="feature"><b>400 Bad Request</b><p>Missing ambulance ID, origin, destination or invalid speed/severity.</p></div>
+              <div class="feature"><b>404 Not Found</b><p>Ambulance, route or signal does not exist.</p></div>
+              <div class="feature"><b>409 Conflict</b><p>Unsafe signal priority conflict or duplicate active priority.</p></div>
+              <div class="feature"><b>500 Server Error</b><p>Unexpected backend failure with a useful message and audit log.</p></div>
+            </div>
+          </div></div>
+        </div>
+
+        <div class="card" style="margin-top:16px"><div class="card-head"><div><div class="card-title">Sample JSON</div><div class="card-sub">Frontend ↔ backend payload</div></div></div><div class="card-body">
+          <div class="code">POST /api/ai/analyze
+
+{
+  "ambulanceId": "AMB-001",
+  "origin": "Tirupati Central",
+  "destination": "SVIMS Hospital",
+  "severity": "CRITICAL",
+  "speed": 54
+}
+
+Response:
+{
+  "recommendedSignal": "SIG-101",
+  "priorityScore": 92,
+  "confidence": 0.92,
+  "predictedEtaMinutes": 2,
+  "estimatedDelayReductionPercent": 38,
+  "congestionForecast": "MEDIUM",
+  "safetyStatus": "SAFE",
+  "reason": "Nearest critical-route junction with high predicted delay."
+}</div>
+        </div></div>
+
+        <div class="card" style="margin-top:16px"><div class="card-head"><div><div class="card-title">Hackathon Best Feature Set</div><div class="card-sub">Prioritize these in your final demo</div></div></div><div class="card-body"><div class="feature-list">
+          <div class="feature"><b>1. Dynamic Green Corridor</b><p>Sequentially prioritize only the next relevant traffic signal.</p></div>
+          <div class="feature"><b>2. AI Priority Score</b><p>Explainable model based on severity, ETA, distance and signal state.</p></div>
+          <div class="feature"><b>3. Predictive Congestion</b><p>Estimate congestion and choose the route that minimizes emergency delay.</p></div>
+          <div class="feature"><b>4. Human-in-the-loop</b><p>Operator approves or overrides AI recommendations.</p></div>
+          <div class="feature"><b>5. Safety Conflict Detection</b><p>Block risky signal requests and return 409 Conflict.</p></div>
+          <div class="feature"><b>6. Audit + Analytics</b><p>Record every change and show time saved, success rate and impact.</p></div>
+        </div></div></div>
+      </section>
+    </main>
+  </section>
+</div>
+
+<div id="modalBackdrop" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-head"><div><b id="modalTitle">Register Ambulance</b><div class="card-sub">Demo form — connect to POST /api/ambulances</div></div><button class="icon-btn" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field"><label class="label">Ambulance ID *</label><input id="mId" class="input" value="AMB-003"></div>
+        <div class="field"><label class="label">Driver / Unit</label><input id="mDriver" class="input" value="Emergency Unit 03"></div>
+        <div class="field"><label class="label">Current Location *</label><input id="mOrigin" class="input" value="Tirupati Central"></div>
+        <div class="field"><label class="label">Destination *</label><input id="mDestination" class="input" value="SVIMS Hospital"></div>
+        <div class="field"><label class="label">Emergency Severity *</label><select id="mSeverity" class="select"><option>CRITICAL</option><option>HIGH</option><option>MEDIUM</option><option>LOW</option></select></div>
+        <div class="field"><label class="label">Speed km/h</label><input id="mSpeed" class="input" value="50" type="number"></div>
+      </div>
+      <div id="modalError" style="display:none;color:#b91c1c;background:#fff0f2;border:1px solid #fecaca;border-radius:8px;padding:8px;font-size:9px;margin-bottom:10px"></div>
+      <button class="btn btn-primary" onclick="saveAmbulance()">Save & Calculate Route</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const S={
+  page:"dashboard", selectedAmb:"AMB-001", selectedSignal:"SIG-101", signalFilter:"ALL", activityFilter:"ALL",
+  aiScore:92,
+  ambulances:[
+    {id:"AMB-001",driver:"Emergency Unit 01",origin:"Tirupati Central",destination:"SVIMS Hospital",patient:"CRITICAL",status:"EN ROUTE",speed:54,eta:11,x:8,y:82},
+    {id:"AMB-002",driver:"Emergency Unit 02",origin:"Renigunta Road",destination:"Government Hospital",patient:"STABLE",status:"WAITING",speed:0,eta:0,x:12,y:18}
+  ],
+  signals:[
+    {id:"SIG-101",name:"Tirupati Central",x:18,y:72,state:"RED",priority:false,eta:2,phase:28},
+    {id:"SIG-102",name:"Leela Mahal Junction",x:34,y:55,state:"GREEN",priority:false,eta:4,phase:18},
+    {id:"SIG-103",name:"Alipiri Junction",x:51,y:42,state:"RED",priority:false,eta:6,phase:32},
+    {id:"SIG-104",name:"SV University Road",x:68,y:35,state:"RED",priority:false,eta:8,phase:24},
+    {id:"SIG-105",name:"Hospital Gate",x:84,y:24,state:"RED",priority:false,eta:10,phase:20}
+  ],
+  activity:[
+    {time:"12:02",type:"ROUTE",amb:"AMB-001",signal:"-",action:"Route calculated",status:"SUCCESS",reason:"5 traffic signals detected"},
+    {time:"12:04",type:"GPS",amb:"AMB-001",signal:"SIG-101",action:"Approaching junction",status:"INFO",reason:"ETA 2 minutes"}
+  ],
+  aiEvents:0
+};
+
+const $=id=>document.getElementById(id);
+function toast(msg,detail=""){const e=$("toast");e.innerHTML=msg+(detail?`<small>${detail}</small>`:"");e.classList.add("show");clearTimeout(window._tt);window._tt=setTimeout(()=>e.classList.remove("show"),2600)}
+function now(){return new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
+function addActivity(text,type="SUCCESS",signal="-",reason="Operator action"){S.activity.unshift({time:now(),type,amb:S.selectedAmb,signal,action:text,status:type==="ERROR"?"ERROR":type==="INFO"?"INFO":"SUCCESS",reason});S.activity=S.activity.slice(0,100);renderActivity();renderEvents();updateStats()}
+function clearActivity(){S.activity=[];renderActivity();renderEvents();toast("Demo audit log cleared")}
+function amb(){return S.ambulances.find(a=>a.id===S.selectedAmb)||S.ambulances[0]}
+function sig(){return S.signals.find(s=>s.id===S.selectedSignal)||S.signals[0]}
+
+const pageTitles={
+ dashboard:["Emergency Route Dashboard","SmartCorridor AI / Dashboard"],
+ ambulances:["Ambulance Operations","SmartCorridor AI / Ambulances"],
+ routes:["AI Route Planner","SmartCorridor AI / Route Planner"],
+ signals:["Traffic Signal Command Center","SmartCorridor AI / Traffic Signals"],
+ ai:["AI Traffic Intelligence Center","SmartCorridor AI / AI Intelligence"],
+ events:["Emergency Events & Audit","SmartCorridor AI / Emergency Events"],
+ analytics:["Performance Analytics","SmartCorridor AI / Analytics"],
+ architecture:["System Architecture & API","SmartCorridor AI / System & API"]
+};
+
+function go(page){
+  S.page=page;
+  document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id==="page-"+page));
+  document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
+  $("pageTitle").textContent=pageTitles[page][0];$("breadcrumb").textContent=pageTitles[page][1];
+  $("sidebar").classList.remove("open");window.scrollTo({top:0,behavior:"smooth"});
+  renderPage(page)
+}
+function renderPage(page){
+  if(page==="dashboard")renderDashboard();
+  if(page==="ambulances")renderAmbulances();
+  if(page==="routes")renderRoutes();
+  if(page==="signals")renderSignalsPage();
+  if(page==="ai")renderAiPage();
+  if(page==="events")renderEvents();
+  if(page==="analytics")renderAnalytics();
+  if(page==="architecture"){}
+}
+
+document.querySelectorAll(".nav button").forEach(b=>b.addEventListener("click",()=>go(b.dataset.page)));
+$("mobileMenu").addEventListener("click",()=>$("sidebar").classList.toggle("open"));
+$("notificationBtn").addEventListener("click",()=>go("events"));
+
+function renderStats(){
+  $("dAmb").textContent=S.ambulances.filter(a=>a.status==="EN ROUTE").length;
+  $("dPri").textContent=S.signals.filter(s=>s.priority).length;
+  $("dSig").textContent=S.signals.length;
+  $("dRed").textContent=S.signals.filter(s=>s.state==="RED").length;
+  $("sTotal").textContent=S.signals.length;$("sGreen").textContent=S.signals.filter(s=>s.state==="GREEN").length;$("sRed").textContent=S.signals.filter(s=>s.state==="RED").length;$("sPriority").textContent=S.signals.filter(s=>s.priority).length;
+}
+function updateStats(){renderStats();if(S.page==="dashboard")renderDashboard();if(S.page==="signals")renderSignalsPage();}
+
+function mapHTML(){
+  const a=amb();
+  return `<div class="map-grid"></div><div class="road r1"></div><div class="road r2"></div><div class="road r3"></div>
+  <svg class="route-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+    <polyline points="8,82 18,72 34,55 51,42 68,35 84,24" fill="none" stroke="rgba(16,185,129,.24)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="8,82 18,72 34,55 51,42 68,35 84,24" fill="none" stroke="#10b981" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3 2"/>
+  </svg>
+  ${S.signals.map(s=>`<button class="map-signal ${s.state.toLowerCase()} ${s.priority?"priority":""}" style="left:${s.x}%;top:${s.y}%" onclick="selectSignal('${s.id}')" title="${s.name}"><span></span></button>`).join("")}
+  <div class="amb-marker" style="left:${a.x}%;top:${a.y}%">🚑</div>
+  <div class="map-label start">START</div><div class="map-label hospital">HOSPITAL</div>
+  <div class="map-legend"><span><i class="lr"></i>Priority route</span><span><i class="lg"></i>Green</span><span><i class="lred"></i>Red</span><span><i class="lp"></i>Priority active</span></div>`;
+}
+function renderDashboard(){
+  renderStats();
+  $("dashboardMap").innerHTML=mapHTML();
+  $("dashAmbSelect").innerHTML=S.ambulances.map(a=>`<option value="${a.id}" ${a.id===S.selectedAmb?"selected":""}>${a.id} — ${a.destination} — ${a.patient}</option>`).join("");
+  const a=amb();$("dashOrigin").textContent=a.origin;$("dashDestination").textContent=a.destination;$("dashSpeed").textContent=a.speed+" km/h";$("dashEta").textContent=Math.max(0,Math.ceil(a.eta))+" min";
+  let pct=Math.min(99,Math.max(4,((a.x-8)/76)*100));$("dashProgressText").textContent=Math.round(pct)+"%";$("dashProgress").style.width=pct+"%";
+  $("aiRecommendation").textContent=sig().id+" should receive priority";$("aiEta").textContent=sig().eta+" min";$("aiScore").textContent=S.aiScore;
+  $("aiDelay").textContent="-"+(38+Math.floor(S.aiScore%4))+"%";$("aiCongestion").textContent=S.aiScore>88?"Medium":"High";$("aiSafety").textContent="Safe";
+  const next=S.signals.find(s=>!s.priority);
+  $("nextActions").innerHTML=next?`
+    <div style="display:flex;justify-content:space-between;gap:9px;align-items:center">
+      <div><div style="font-size:12px;font-weight:850">${next.id}</div><div style="font-size:9px;color:#8290a2;margin-top:2px">${next.name} • ETA ${next.eta} min</div></div>
+      <button class="btn btn-green" onclick="givePriority('${next.id}')">Prioritize</button>
+    </div>`:
+    `<div style="font-size:10px;color:#63748a">All demo signals currently have priority. Clear a signal to continue a sequential test.</div>`;
+  renderActivity();
+  $("dashFilters").innerHTML=["ALL","PRIORITY","RED","GREEN"].map(x=>`<button class="filter ${S.signalFilter===x?"active":""}" onclick="setSignalFilter('${x}')">${x}</button>`).join("");
+  $("dashSignalList").innerHTML=filteredSignals().map(signalCard).join("");
+}
+function filteredSignals(){
+  return S.signals.filter(s=>S.signalFilter==="ALL"||(S.signalFilter==="PRIORITY"&&s.priority)||(S.signalFilter==="RED"&&s.state==="RED")||(S.signalFilter==="GREEN"&&s.state==="GREEN"));
+}
+function signalCard(s){
+ return `<div class="signal-card ${S.selectedSignal===s.id?"selected":""}" onclick="selectSignal('${s.id}')">
+  <div class="signal-head"><span class="signal-id">${s.id}</span>${s.priority?'<span class="pill green">● PRIORITY</span>':""}</div>
+  <div class="signal-name">${s.name}</div>
+  <div class="signal-foot"><span class="signal-state"><i class="dot ${s.state.toLowerCase()}"></i>${s.state}</span><span style="font-size:8px;color:#8390a0">${s.eta} min</span></div>
+ </div>`
+}
+function setSignalFilter(f){S.signalFilter=f;renderDashboard();renderSignalsPage()}
+$("dashAmbSelect").addEventListener("change",e=>{S.selectedAmb=e.target.value;S.selectedSignal=S.signals[0].id;renderDashboard();toast("Ambulance selected",S.selectedAmb)})
+function selectSignal(id){S.selectedSignal=id;renderDashboard();renderSignalsPage();toast("Signal selected",`${id} — ${sig().name}`)}
+function givePriority(id){
+ const s=S.signals.find(x=>x.id===id); if(!s)return;
+ s.priority=true;s.state="GREEN";s.phase=8;addActivity("Priority activated","PRIORITY",s.id,"AI/operator emergency corridor");renderDashboard();renderSignalsPage();renderAiPage();toast("Priority activated",`${s.id} is GREEN for ${S.selectedAmb}`);
+}
+function clearPriority(id){
+ const s=S.signals.find(x=>x.id===id);if(!s)return;
+ s.priority=false;s.state="RED";s.phase=25;addActivity("Priority cleared","INFO",s.id,"Ambulance passed / normal cycle restored");renderDashboard();renderSignalsPage();toast("Priority cleared",`${s.id} returned to normal`);
+}
+function activateGreenCorridor(){
+ S.signals.forEach(s=>{s.priority=true;s.state="GREEN";s.phase=6});
+ addActivity("Emergency Green Corridor activated","PRIORITY","ALL","Critical route priority across all demo signals");
+ renderDashboard();renderSignalsPage();renderEvents();
+ toast("Emergency Green Corridor activated",`${S.selectedAmb} has route priority across ${S.signals.length} signals`);
+}
+function aiApprove(){const s=sig();S.aiEvents++;givePriority(s.id);toast("AI recommendation approved",`${s.id} prioritized with confidence ${S.aiScore}%`)}
+
+function renderActivity(){
+  const items=S.activity.slice(0,7);
+  const html=items.length?items.map(n=>`<div class="activity-item"><span class="activity-dot" style="background:${n.status==="ERROR"?"#ef4444":n.status==="INFO"?"#3b82f6":"#10b981"}"></span><div><div class="activity-text">${n.action} ${n.signal!=="-"?`• ${n.signal}`:""}</div><div class="activity-time">${n.time} • ${n.reason}</div></div></div>`).join(""):'<div style="font-size:10px;color:#8794a5;padding:8px 0">No recent events.</div>';
+  if($("dashActivity"))$("dashActivity").innerHTML=html;
+}
+
+function renderAmbulances(){
+ $("aTotal").textContent=S.ambulances.length;$("aCritical").textContent=S.ambulances.filter(a=>a.patient==="CRITICAL").length;$("aEta").textContent=Math.min(...S.ambulances.map(a=>Math.max(1,Math.ceil(a.eta))))+"m";
+ $("ambulanceTable").innerHTML=S.ambulances.map(a=>`<tr><td><b>${a.id}</b></td><td><span class="pill ${a.status==="EN ROUTE"?"green":"gray"}">${a.status}</span></td><td><span class="pill ${a.patient==="CRITICAL"?"red":a.patient==="HIGH"?"amber":"green"}">${a.patient}</span></td><td>${a.origin}</td><td>${a.destination}</td><td>${a.speed} km/h</td><td>${a.eta?a.eta.toFixed(0)+" min":"-"}</td><td><button class="btn btn-secondary" style="padding:6px 8px;font-size:9px" onclick="focusAmb('${a.id}')">View</button></td></tr>`).join("");
+}
+function focusAmb(id){S.selectedAmb=id;go("dashboard");toast("Viewing ambulance",id)}
+function openAmbulanceModal(){$("modalBackdrop").classList.add("show");$("modalError").style.display="none"}
+function closeModal(){$("modalBackdrop").classList.remove("show")}
+function saveAmbulance(){
+ const id=$("mId").value.trim(),driver=$("mDriver").value.trim()||"Emergency Unit",origin=$("mOrigin").value.trim(),dest=$("mDestination").value.trim(),severity=$("mSeverity").value,speed=Number($("mSpeed").value);
+ const err=$("modalError");
+ if(!id||!origin||!dest||!severity){err.textContent="Validation error: ambulance ID, current location, destination and emergency level are required.";err.style.display="block";return}
+ if(S.ambulances.some(a=>a.id===id)){err.textContent="409 Conflict: Ambulance ID already exists.";err.style.display="block";return}
+ S.ambulances.push({id,driver,origin,destination:dest,patient:severity,status:"EN ROUTE",speed,eta:8,x:10,y:80});
+ S.selectedAmb=id;addActivity("Ambulance registered","SUCCESS","-","Validated required fields and created route request");closeModal();renderAmbulances();renderDashboard();toast("Ambulance registered",`${id} route calculation started`);
+}
+function quickAddAmbulance(){
+ $("mId").value=$("quickAmbId").value;$("mOrigin").value=$("quickOrigin").value;$("mDestination").value=$("quickDestination").value;$("mSeverity").value=$("quickSeverity").value;$("mSpeed").value=$("quickSpeed").value;saveAmbulance()
+}
+function refreshData(){renderAmbulances();toast("Data refreshed","Simulated GET /api/ambulances")}
+
+function calculateRoute(){
+ const a=amb();
+ $("routeOrigin").value=a.origin;$("routeDestination").value=a.destination;
+ const congestion=S.aiScore>88?"Medium":"High";
+ const dist=7.8,eta=Math.max(7,Math.round(a.eta||11)),saved=Math.max(2,Math.round(eta*.38));
+ $("routeDistance").textContent=dist.toFixed(1)+" km";$("routeEta").textContent=eta+" min";$("routeSignals").textContent=S.signals.length;$("routeSaved").textContent=saved+" min";
+ $("routeExplanation").textContent=`AI selected the route using predicted ${congestion.toLowerCase()} congestion, emergency severity (${a.patient.toLowerCase()}), and five signalized junctions. Expected delay reduction is about 38%.`;
+ $("routeTimeline").innerHTML=S.signals.map((s,i)=>`<div class="tl-item"><h4>${i+1}. ${s.id} — ${s.name} <span class="pill ${s.priority?"green":"blue"}" style="margin-left:5px">${s.priority?"PRIORITY ACTIVE":"WAITING"}</span></h4><p>Predicted ambulance ETA: ${s.eta} min • Phase: ${s.phase}s • Action: ${s.priority?"keep green window":"request priority before arrival"}</p></div>`).join("");
+ addActivity("AI emergency route calculated","AI","-",`Distance ${dist} km • ETA ${eta} min • ${S.signals.length} signals`);toast("Best route calculated",`Estimated ${saved} minutes saved`);
+}
+
+function renderRoutes(){calculateRoute()}
+
+function renderSignalsPage(){
+ renderStats();
+ let arr=S.signals.filter(s=>S.activityFilter==="ALL"||true);
+ if(S.signalFilter==="RED")arr=arr.filter(s=>s.state==="RED");if(S.signalFilter==="GREEN")arr=arr.filter(s=>s.state==="GREEN");if(S.signalFilter==="PRIORITY")arr=arr.filter(s=>s.priority);
+ $("signalNetwork").innerHTML=arr.map(signalCard).join("");
+ const s=sig();
+ $("signalController").innerHTML=`<div class="selected-head" style="display:flex;justify-content:space-between"><div><div style="font-size:16px;font-weight:850">${s.id}</div><div style="font-size:10px;color:#8290a2">${s.name}</div></div><span class="pill ${s.priority?"green":s.state==="RED"?"red":"green"}">${s.priority?"PRIORITY":s.state}</span></div>
+ <div class="light-preview"><span class="bulb red ${s.state==="RED"?"on":""}"></span><span class="bulb yellow"></span><span class="bulb green ${s.state==="GREEN"?"on":""}"></span></div>
+ <div class="detail-grid"><div class="detail"><label>AMBULANCE ETA</label><b>${s.eta} min</b></div><div class="detail"><label>NORMAL PHASE</label><b>${s.phase}s</b></div></div>
+ <div style="display:flex;gap:7px;margin-top:10px"><button class="btn ${s.priority?"btn-secondary":"btn-primary"}" onclick="${s.priority?`clearPriority('${s.id}')`:`givePriority('${s.id}')`}">${s.priority?"Clear Priority":"Give Priority"}</button><button class="btn btn-secondary" onclick="aiApprove()">Approve AI</button></div>`;
+ $("signalJson").textContent=JSON.stringify({signalId:s.id,status:s.priority?"PRIORITY_ACTIVE":s.state,currentState:s.state,priority:s.priority,ambulanceId:S.selectedAmb,etaMinutes:s.eta},null,2);
+}
+
+document.querySelectorAll("[data-sfilter]").forEach(b=>b.addEventListener("click",()=>{S.signalFilter=b.dataset.sfilter;document.querySelectorAll("[data-sfilter]").forEach(x=>x.classList.toggle("active",x===b));renderSignalsPage();renderDashboard()}));
+
+function runAiAnalysis(){
+ S.aiScore=Math.min(99,Math.max(78,Math.round(86+Math.random()*11)));
+ S.aiEvents++;
+ const s=S.signals.find(x=>!x.priority)||S.signals[0];
+ $("aiPageScore").textContent=S.aiScore+"%";$("aiPageCongestion").textContent=S.aiScore>92?"Low":S.aiScore>86?"Medium":"High";$("aiPageEta").textContent=s.eta+" min";
+ $("aiMainRecommendation").textContent="Prioritize "+s.id;
+ $("aiMainExplanation").textContent=`AI predicts that ${s.id} provides the highest emergency benefit because its ETA is ${s.eta} minutes, it lies on the selected route and can reduce queue delay without a known safety conflict.`;
+ $("aiConfidenceBar").style.width=S.aiScore+"%";
+ renderDashboard();
+ $("aiFactors").innerHTML=[
+  ["Emergency severity","40%",S.aiScore>85?"Critical → maximum urgency":"High → elevated urgency"],
+  ["ETA proximity","30%",s.eta+" min to junction"],
+  ["Distance / position","20%",Math.max(0,Math.round(100-s.eta*6))+"% proximity score"],
+  ["Signal state","10%",s.state+" → intervention candidate"]
+ ].map(x=>`<div style="padding:10px 0;border-bottom:1px solid #edf1f5"><div style="display:flex;justify-content:space-between;font-size:10px"><b>${x[0]}</b><span class="pill purple">${x[1]}</span></div><div style="font-size:9px;color:#718096;margin-top:4px">${x[2]}</div></div>`).join("");
+ addActivity("AI priority recommendation generated","AI",s.id,`Confidence ${S.aiScore}%`);
+ toast("AI analysis complete",`${s.id} recommended with ${S.aiScore}% confidence`);
+}
+function renderAiPage(){
+ if($("aiPageScore")){$("aiPageScore").textContent=S.aiScore+"%";$("aiPageCongestion").textContent=S.aiScore>92?"Low":S.aiScore>86?"Medium":"High";$("aiPageEta").textContent=sig().eta+" min";}
+ if($("aiFactors")){const s=sig();$("aiFactors").innerHTML=[
+ ["Emergency severity","40%",amb().patient+" urgency"],
+ ["ETA proximity","30%",s.eta+" min to "+s.name],
+ ["Distance / position","20%","High route relevance"],
+ ["Signal state","10%",s.state+" current state"]
+ ].map(x=>`<div style="padding:10px 0;border-bottom:1px solid #edf1f5"><div style="display:flex;justify-content:space-between;font-size:10px"><b>${x[0]}</b><span class="pill purple">${x[1]}</span></div><div style="font-size:9px;color:#718096;margin-top:4px">${x[2]}</div></div>`).join("");}
+}
+
+function renderEvents(){
+ $("eCount").textContent=S.activity.length;$("ePriority").textContent=S.activity.filter(x=>x.type==="PRIORITY").length;$("eAi").textContent=S.activity.filter(x=>x.type==="AI").length;$("eSuccess").textContent=S.activity.filter(x=>x.status==="SUCCESS").length;
+ $("eventTable").innerHTML=(S.activity.length?S.activity:[]).map(n=>`<tr><td>${n.time}</td><td><span class="pill ${n.type==="AI"?"purple":n.type==="PRIORITY"?"green":n.type==="ERROR"?"red":"blue"}">${n.type}</span></td><td>${n.amb}</td><td>${n.signal}</td><td>${n.action}</td><td>${n.status}</td><td>${n.reason}</td></tr>`).join("");
+}
+
+function renderAnalytics(){
+ const vals=[9,8.5,8.1,7.7,7.4,7.1,6.8];
+ $("barChart").innerHTML=vals.map((v,i)=>`<div class="bar" style="height:${(v/10)*90}%"><span>${v.toFixed(1)}m</span></div>`).join("");
+ $("barLabels").innerHTML=vals.map((_,i)=>`<span>${["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][i]}</span>`).join("");
+}
+
+function renderFull(){
+ renderStats();renderDashboard();renderAmbulances();renderRoutes();renderSignalsPage();renderAiPage();renderEvents();renderAnalytics();
+}
+setInterval(()=>{
+ const a=S.ambulances.find(x=>x.id==="AMB-001");if(a&&a.status==="EN ROUTE"){
+  a.x=Math.min(84,a.x+.45);a.y=Math.max(24,a.y-.40);a.eta=Math.max(1,a.eta-.05);
+  const idx=S.signals.findIndex(s=>s.priority);
+  if(idx>=0 && Math.abs(a.x-S.signals[idx].x)<4 && Math.abs(a.y-S.signals[idx].y)<4){
+    S.signals[idx].priority=false;S.signals[idx].state="RED";
+    if(idx<S.signals.length-1){
+      const next=S.signals[idx+1];next.priority=true;next.state="GREEN";next.phase=8;S.selectedSignal=next.id;
+      addActivity("Sequential corridor advanced","PRIORITY",next.id,`${S.signals[idx].id} cleared after ambulance passage`);
+    }else addActivity("Ambulance approaching hospital","INFO","SIG-105","Final junction reached");
+  }
+  if(S.page==="dashboard")renderDashboard();if(S.page==="signals")renderSignalsPage();if(S.page==="ambulances")renderAmbulances();
+ }
+},1000);
+setInterval(()=>{$("topClock").textContent=new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"})},1000);
+$("dashAmbSelect").addEventListener("change",e=>{S.selectedAmb=e.target.value;renderDashboard()});
+
+$("modalBackdrop").addEventListener("click",e=>{if(e.target===$("modalBackdrop"))closeModal()});
+renderFull();
+</script>
+</body>
+</html>
